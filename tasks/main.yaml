@@ -67,7 +67,7 @@
       {% endfor %}
       {% endif %}
       {% for archive in proxmox_backup.client.archives %}
-      {{ archive.name }}{{ archive.format }}:{{ archive.path }}{{ ' \' if not loop.last else '' }}
+      {{ archive.name }}{{ archive.format }}:{{ archive.path }}{{ ' \\' if not loop.last else '' }}
       {% endfor %}
 
 - name: Proxmox Backup Server | Create systemd service
