@@ -67,7 +67,7 @@
       {% endfor %}
       {% endif %}
       {% for archive in proxmox_backup.client.archives %}
-      {{ archive.name }}{{ archive.format }}:{{ archive.path }}{{ ' \\' if not loop.last else '' }}
+      {{ archive.name }}{{ archive.format }}:{{ archive.path }}
       {% endfor %}
 
 - name: Proxmox Backup Server | Create systemd service
@@ -96,6 +96,10 @@
                   - PBS_OUTPUT_NO_HEADER={{ proxmox_backup.client.output.header | default('') }}
                 ExecStart:
                   - "{{ proxmox_backup_client_start_cmd | trim | regex_replace('\n+', ' \\\n') | indent(4, False) }}"
+            options:
+              enabled: false
+              state: stopped
+              restart_on_change: false
         timer:
           proxmox-backup-client:
             config:
