@@ -76,7 +76,7 @@
   ansible.builtin.include_role:
     name: notmycloud.systemd_unit
   vars:
-    systemd_unit:
+    systemd_units:
       root:
         service:
           proxmox-backup-client:
