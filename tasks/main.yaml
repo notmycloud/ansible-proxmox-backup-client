@@ -26,9 +26,9 @@
     loop_var: exclude
   when: proxmox_backup.client.exclude is defined
 
-- name: Merge supplied and default dictionaries
-  ansible.builtin.set_fact:
-    config: "{{ default_config | combine(proxmox_backup, recursive=true) }}"
+# - name: Merge supplied and default dictionaries
+#   ansible.builtin.set_fact:
+#     config: "{{ default_config | combine(proxmox_backup, recursive=true) }}"
 
 - name: Include OS Family tasks
   ansible.builtin.include_tasks: os/{{ ansible_os_family | lower }}.yaml
@@ -36,19 +36,19 @@
 - name: Configure encryption
   ansible.builtin.include_tasks: encryption.yaml
   when:
-    - config.client.encrypt is defined
-    - config.client.encrypt.enable
+    - proxmox_backup.client.encrypt is defined
+    - proxmox_backup.client.encrypt.enable
 
 - name: Add Exclusions
   ansible.builtin.include_tasks: exclude.yaml
-  loop: "{{ config.client.exclude }}"
+  loop: "{{ proxmox_backup.client.exclude }}"
   loop_control:
     loop_var: exclude
-  when: config.client.exclude is defined
+  when: proxmox_backup.client.exclude is defined
 
 # - name: Debug Config
 #   debug:
-#     var: config.client
+#     var: proxmox_backup.client
 
 # - name: Configure service
 #   include_tasks: service.yaml
@@ -57,18 +57,16 @@
   ansible.builtin.set_fact:
     proxmox_backup_client_start_cmd: |-
       /usr/bin/proxmox-backup-client
-      {% if config.server.encrypt.key is defined %}
-      --keyfile {{ config.client.encrypt.key }}
+      {% if proxmox_backup.server.encrypt.key is defined %}
+      --keyfile {{ proxmox_backup.client.encrypt.key | default('~/.config/proxmox-backup/encryption-key.json') }}
       {% endif %}
-      {% if config.client.skip_lost_found is defined %}
-      --skip-lost-and-found true \
-      {% endif %}
-      {% if config.client.include_devices is defined %}
-      {% for dev in config.client.include_devices %}
+      --skip-lost-and-found {{ proxmox_backup.client.skip_lost_found | default('false') }} \
+      {% if proxmox_backup.client.include_devices is defined %}
+      {% for dev in proxmox_backup.client.include_devices %}
       --include-dev {{ dev }} \
       {% endfor %}
       {% endif %}
-      {% for archive in config.client.archives %}
+      {% for archive in proxmox_backup.client.archives %}
       {{ archive.name }}{{ archive.format }}:{{ archive.path }}{{ " \\" if not loop.last else '' }}
       {% endfor %}
 
@@ -88,14 +86,14 @@
               Service:
                 Type: oneshot
                 Environment:
-                  - PBS_REPOSITORY={{ config.server.user }}@{{ config.server.host }}{% if config.server.port is defined %}:{{ config.server.port }}{% endif %}:{{
-                    config.server.datastore }} # noqa line-length
-                  - PBS_PASSWORD={{ config.server.pass }}
-                  - PBS_FINGERPRINT={{ config.server.fingerprint | default(omit) }}
-                  - PBS_ENCRYPTION_PASSWORD={{ config.client.encrypt.pass | default(omit) }}
-                  - PBS_OUTPUT_FORMAT={{ config.client.output.format | default(omit) }}
-                  - PBS_OUTPUT_NO_BORDER={{ config.client.output.border | default(omit) }}
-                  - PBS_OUTPUT_NO_HEADER={{ config.client.output.header | default(omit) }}
+                  - PBS_REPOSITORY={{ proxmox_backup.server.user }}@{{ proxmox_backup.server.host }}{% if proxmox_backup.server.port is defined %}:{{ proxmox_backup.server.port }}{% endif %}:{{
+                    proxmox_backup.server.datastore }} # noqa line-length
+                  - PBS_PASSWORD={{ proxmox_backup.server.pass }}
+                  - PBS_FINGERPRINT={{ proxmox_backup.server.fingerprint | default(omit) }}
+                  - PBS_ENCRYPTION_PASSWORD={{ proxmox_backup.client.encrypt.pass | default(omit) }}
+                  - PBS_OUTPUT_FORMAT={{ proxmox_backup.client.output.format | default('text') }}
+                  - PBS_OUTPUT_NO_BORDER={{ proxmox_backup.client.output.border | default(omit) }}
+                  - PBS_OUTPUT_NO_HEADER={{ proxmox_backup.client.output.header | default(omit) }}
                 ExecStart:
                   - "{{ proxmox_backup_client_start_cmd | trim | regex_replace('\n+', ' \\\n') | indent(4, False) }}"
         timer:
@@ -104,7 +102,7 @@
               Unit:
                 Description: Proxmox Backup Client Trigger
               Timer:
-                OnCalendar: "{{ config.client.schedule.calendar }}"
-                Persistent: "{% config.client.schedule.runifmissed | default('false') %}"
+                OnCalendar: "{{ proxmox_backup.client.schedule.calendar | default('*-*-* 4:00:00') }}"
+                Persistent: "{% proxmox_backup.client.schedule.runifmissed | default('false') %}"
               Install:
                 WantedBy: timers.target

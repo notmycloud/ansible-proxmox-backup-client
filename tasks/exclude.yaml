@@ -8,7 +8,7 @@
   loop_control:
     loop_var: required_var
 
-- name: Delete\Disable {{ exclude.path }}/.pxarexclude
+- name: Delete\Disable {{ exclude.path }}.pxarexclude
   ansible.builtin.file:
     path: "{{ exclude.path }}/.pxarexclude"
     state: absent

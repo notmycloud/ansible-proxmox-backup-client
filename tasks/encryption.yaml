@@ -8,18 +8,18 @@
 
 - name: Check if encryption key exists
   ansible.builtin.stat:
-    path: "{{ config.client.encrypt.key }}"
+    path: "{{ config.client.encrypt.key | default('~/.config/proxmox-backup/encryption-key.json') }}"
   register: encryption_key
 
 - name: Generate encryption key without password
-  ansible.builtin.command: proxmox-backup-client key create {{ config.client.encrypt.key }} --kdf none
+  ansible.builtin.command: proxmox-backup-client key create {{ config.client.encrypt.key | default('~/.config/proxmox-backup/encryption-key.json') }} --kdf none
   when:
     - not encryption_key.stat.exists
     - config.client.encrypt.pass is not defined
 
 - name: Generate encryption key with password
   ansible.builtin.command: >
-    expect -c "spawn proxmox-backup-client key create {{ config.client.encrypt.key }};
+    expect -c "spawn proxmox-backup-client key create {{ config.client.encrypt.key | default('~/.config/proxmox-backup/encryption-key.json') }};
     expect \"*?assword:*\";
     send -- \"{{ config.client.encrypt.pass }}\r\";
     expect \"*?assword:*\";
