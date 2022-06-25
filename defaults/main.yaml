@@ -1,3 +1,4 @@
+---
 # required_vars:
 #   - proxmox_backup_user
 #   - proxmox_backup_pass
@@ -50,14 +51,14 @@ default_config:
       key: ~/.config/proxmox-backup/encryption-key.json
     output:
       format: text
-    skip_lost_found: no
+    skip_lost_found: false
     # exclude:
     #   - path: /.pxarexclude
     #     rules:
     #       - /tmp
     schedule:
-      calendar: '*-*-* 4:00:00' # Daily at 4am
-      runifmissed: no
+      calendar: "*-*-* 4:00:00" # Daily at 4am
+      runifmissed: false
     # archives:
     #   - name: root
     #     path: /

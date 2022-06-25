@@ -7,16 +7,16 @@
     state: present
 
 - name: Add Proxmox Repo
-  apt_repository:
-    repo: "deb http://download.proxmox.com/debian/pbs-client bullseye main"
+  ansible.builtin.apt_repository:
+    repo: deb http://download.proxmox.com/debian/pbs-client bullseye main
     state: present
 
 - name: Install the Proxmox Backup Client
-  apt:
+  ansible.builtin.apt:
     name: proxmox-backup-client
     state: present
 
 - name: Install the Expect shell
-  apt:
+  ansible.builtin.apt:
     name: expect
     state: present

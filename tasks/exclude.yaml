@@ -1,6 +1,6 @@
 ---
-- name: "Check required exclude variables"
-  fail: msg="Variable 'exclude.{{ required_var }}' must be defined"
+- name: Check required exclude variables
+  ansible.builtin.fail: msg="Variable 'exclude.{{ required_var }}' must be defined"
   when: required_var not in exclude
   loop:
     - path
@@ -9,16 +9,18 @@
     loop_var: required_var
 
 - name: Delete\Disable {{ exclude.path }}/.pxarexclude
-  file:
+  ansible.builtin.file:
     path: "{{ exclude.path }}/.pxarexclude"
     state: absent
-  when: 
+  when:
     - exclude.enabled is defined
     - not exclude.enabled
 
 - name: Configure {{ exclude.path }} rules
-  blockinfile:
-    create: yes
+  ansible.builtin.blockinfile:
+    create: true
     path: "{{ exclude.path }}/.pxarexclude"
     block: "{{ exclude.rules | join('\n') }}"
+    owner: root
+    mode: u=rw,g=r,o=r
   when: exclude.enabled is not defined or exclude.enabled

@@ -1,6 +1,6 @@
 ---
-- name: "Check required pbs.client.archive dictionary keys"
-  fail: msg="archive.{{ required_key }} must be defined"
+- name: Check required pbs.client.archive dictionary keys
+  ansible.builtin.fail: msg="archive.{{ required_key }} must be defined"
   when: required_key not in archive
   with_items: "{{ required_pbs_archive_keys }}"
   loop_control:
