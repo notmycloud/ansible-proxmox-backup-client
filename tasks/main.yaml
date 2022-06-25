@@ -56,7 +56,7 @@
 - name: Proxmox Backup Server | Construct ExecStart command
   ansible.builtin.set_fact:
     proxmox_backup_client_start_cmd: |-
-      /usr/bin/proxmox-backup-client
+      /usr/bin/proxmox-backup-client backup
       {% if proxmox_backup.server.encrypt.key is defined %}
       --keyfile {{ proxmox_backup.client.encrypt.key | default('~/.config/proxmox-backup/encryption-key.json') }}
       {% endif %}
@@ -89,11 +89,11 @@
                   - PBS_REPOSITORY={{ proxmox_backup.server.user }}@{{ proxmox_backup.server.host }}{% if proxmox_backup.server.port is defined %}:{{ proxmox_backup.server.port }}{% endif %}:{{
                     proxmox_backup.server.datastore }} # noqa line-length
                   - PBS_PASSWORD={{ proxmox_backup.server.pass }}
-                  - PBS_FINGERPRINT={{ proxmox_backup.server.fingerprint | default(omit) }}
-                  - PBS_ENCRYPTION_PASSWORD={{ proxmox_backup.client.encrypt.pass | default(omit) }}
+                  - PBS_FINGERPRINT={{ proxmox_backup.server.fingerprint | default('') }}
+                  - PBS_ENCRYPTION_PASSWORD={{ proxmox_backup.client.encrypt.pass | default('') }}
                   - PBS_OUTPUT_FORMAT={{ proxmox_backup.client.output.format | default('text') }}
-                  - PBS_OUTPUT_NO_BORDER={{ proxmox_backup.client.output.border | default(omit) }}
-                  - PBS_OUTPUT_NO_HEADER={{ proxmox_backup.client.output.header | default(omit) }}
+                  - PBS_OUTPUT_NO_BORDER={{ proxmox_backup.client.output.border | default('') }}
+                  - PBS_OUTPUT_NO_HEADER={{ proxmox_backup.client.output.header | default('') }}
                 ExecStart:
                   - "{{ proxmox_backup_client_start_cmd | trim | regex_replace('\n+', ' \\\n') | indent(4, False) }}"
         timer:
