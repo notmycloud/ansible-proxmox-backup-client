@@ -1,0 +1,22 @@
+---
+# TODO: Determine Ubuntu or Debian and select the appropriate repo based on version
+
+- name: Add the Proxmox Apt signing key
+  ansible.builtin.apt_key:
+    url: https://enterprise.proxmox.com/debian/proxmox-release-bullseye.gpg
+    state: present
+
+- name: Add Proxmox Repo
+  apt_repository:
+    repo: "deb http://download.proxmox.com/debian/pbs-client bullseye main"
+    state: present
+
+- name: Install the Proxmox Backup Client
+  apt:
+    name: proxmox-backup-client
+    state: present
+
+- name: Install the Expect shell
+  apt:
+    name: expect
+    state: present

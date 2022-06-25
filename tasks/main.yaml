@@ -1,0 +1,109 @@
+---
+- name: "Check required proxmox_backup.server dictionary keys"
+  fail: msg="proxmox_backup.server.{{ required_key }} must be defined"
+  when: required_key not in proxmox_backup.server
+  with_items: "{{ required_pbs_server_keys }}"
+  loop_control:
+    loop_var: required_key
+    
+- name: "Check required proxmox_backup.client dictionary keys"
+  fail: msg="proxmox_backup.client.{{ required_key }} must be defined"
+  when: required_key not in proxmox_backup.client
+  with_items: "{{ required_pbs_client_keys }}"
+  loop_control:
+    loop_var: required_key
+    
+- name: "Check required proxmox_backup.archive dictionary keys"
+  include_tasks: check_archive_keys.yaml
+  with_items: "{{ proxmox_backup.client.archives }}"
+  loop_control:
+    loop_var: archive
+    
+- name: "Check required proxmox_backup.exclude dictionary keys"
+  include_tasks: check_exclude_keys.yaml
+  with_items: "{{ proxmox_backup.client.exclude }}"
+  loop_control:
+    loop_var: exclude
+  when: proxmox_backup.client.exclude is defined
+
+- name: Merge supplied and default dictionaries
+  set_fact:
+    config: "{{ default_config | combine(proxmox_backup, recursive=true) }}"
+
+- name: Include OS Family tasks
+  include_tasks: "os/{{ ansible_os_family | lower }}.yaml"
+
+- name: Configure encryption
+  include_tasks: encryption.yaml
+  when: 
+    - config.client.encrypt is defined
+    - config.client.encrypt.enable
+
+- name: Add Exclusions
+  include_tasks: exclude.yaml
+  loop: "{{ config.client.exclude }}"
+  loop_control:
+    loop_var: exclude
+  when: config.client.exclude is defined
+
+- name: Debug Config
+  debug:
+    var: config.client
+
+# - name: Configure service
+#   include_tasks: service.yaml
+
+- name: "Proxmox Backup Server | Construct ExecStart command"
+  ansible.builtin.set_fact:
+    proxmox_backup_client_start_cmd: |-
+      /usr/bin/proxmox-backup-client
+      {% if config.server.encrypt.key is defined %}
+      --keyfile {{ config.client.encrypt.key }}
+      {% endif %}
+      {% if config.client.skip_lost_found is defined %}
+      --skip-lost-and-found true \
+      {% endif %}
+      {% if config.client.include_devices is defined %}
+      {% for dev in config.client.include_devices %}
+      --include-dev {{ dev }} \
+      {% endfor %}
+      {% endif %}
+      {% for archive in config.client.archives %}
+      {{ archive.name }}{{ archive.format }}:{{ archive.path }}{{ " \\" if not loop.last else '' }}
+      {% endfor %}
+
+- name: "Proxmox Backup Server | Create systemd service"
+  ansible.builtin.include_role:
+    name: notmycloud.systemd_unit
+  vars:
+    systemd_unit:
+      root:
+        service:
+          proxmox-backup-client:
+            config:
+              Unit:
+                Description: Proxmox Backup Client
+                Requires: network-online.target
+                After: network-online.target
+              Service:
+                Type: oneshot
+                Environment:
+                  - "PBS_REPOSITORY={{ config.server.user }}@{{ config.server.host }}{% if config.server.port is defined %}:{{ config.server.port }}{% endif %}:{{ config.server.datastore }}"
+                  - "PBS_PASSWORD={{ config.server.pass }}"
+                  - "PBS_FINGERPRINT={{ config.server.fingerprint | default(omit) }}"
+                  - "PBS_ENCRYPTION_PASSWORD={{ config.client.encrypt.pass | default(omit) }}"
+                  - "PBS_OUTPUT_FORMAT={{ config.client.output.format | default(omit) }}"
+                  - "PBS_OUTPUT_NO_BORDER={{ config.client.output.border | default(omit) }}"
+                  - "PBS_OUTPUT_NO_HEADER={{ config.client.output.header | default(omit) }}"
+                ExecStart: 
+                  - "{{ proxmox_backup_client_start_cmd | trim | regex_replace('\n+', ' \\\n') | indent(4, False) }}"
+        timer:
+          proxmox-backup-client:
+            config:
+              Unit:
+                Description: Proxmox Backup Client Trigger
+              Timer:
+                OnCalendar: "{{ config.client.schedule.calendar }}"
+                Persistent: "{% config.client.schedule.runifmissed | default('false') %}"
+              Install:
+                WantedBy: timers.target
