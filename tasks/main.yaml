@@ -103,6 +103,6 @@
                 Description: Proxmox Backup Client Trigger
               Timer:
                 OnCalendar: "{{ proxmox_backup.client.schedule.calendar | default('*-*-* 4:00:00') }}"
-                Persistent: "{% proxmox_backup.client.schedule.runifmissed | default('false') %}"
+                Persistent: "{{ proxmox_backup.client.schedule.runifmissed | default('false') }}"
               Install:
                 WantedBy: timers.target
