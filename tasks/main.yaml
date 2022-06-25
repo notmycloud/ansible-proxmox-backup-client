@@ -60,14 +60,14 @@
       {% if proxmox_backup.server.encrypt.key is defined %}
       --keyfile {{ proxmox_backup.client.encrypt.key | default('~/.config/proxmox-backup/encryption-key.json') }}
       {% endif %}
-      --skip-lost-and-found {{ proxmox_backup.client.skip_lost_found | default('false') }} \
+      --skip-lost-and-found {{ proxmox_backup.client.skip_lost_found | default('false') }}
       {% if proxmox_backup.client.include_devices is defined %}
       {% for dev in proxmox_backup.client.include_devices %}
-      --include-dev {{ dev }} \
+      --include-dev {{ dev }}
       {% endfor %}
       {% endif %}
       {% for archive in proxmox_backup.client.archives %}
-      {{ archive.name }}{{ archive.format }}:{{ archive.path }}{{ " \\" if not loop.last else '' }}
+      {{ archive.name }}{{ archive.format }}:{{ archive.path }}{{ ' \' if not loop.last else '' }}
       {% endfor %}
 
 - name: Proxmox Backup Server | Create systemd service
